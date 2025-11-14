@@ -1,0 +1,1 @@
+cd OpenList && appcenter-cli install-local && cd ../

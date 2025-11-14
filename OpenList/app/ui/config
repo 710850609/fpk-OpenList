@@ -1,0 +1,18 @@
+{
+    ".url": {
+        "OpenList.Application": {
+            "title": "OpenList",
+            "icon": "images/icon_{0}.jpg",
+            "type": "url",
+            "protocol": "http",
+            "port": "5244",
+            "url": "/",
+            "allUsers": false,            
+            "control": {
+                "accessPerm": "readonly",
+                "portPerm": "editable", 
+                "pathPerm": "hidden"
+            }
+        }
+    }
+}
