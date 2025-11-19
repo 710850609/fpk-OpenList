@@ -11,7 +11,7 @@
             "control": {
                 "accessPerm": "readonly",
                 "portPerm": "editable", 
-                "pathPerm": "hidden"
+                "pathPerm": "editable"
             }
         }
     }

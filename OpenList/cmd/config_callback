@@ -2,20 +2,4 @@
 
 ### This script is called after the user change environment variables in application setting page.
 
-LOG_FILE="${TRIM_PKGVAR}/info.log"
-
-DATA_DIR="${TRIM_PKGVAR}/data"
-CFG_FILE="${TRIM_PKGVAR}/data/config.json"
-DEFAULT_PORT=5244
-
-log_msg() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
-}
-
-ADMIN_PASSWORD="$wizard_admin_password"
-HTTP_PORT="$wizard_http_port"
-
-log_msg "超管密码: $ADMIN_PASSWORD"
-log_msg "端口: $HTTP_PORT"
-
 exit 0

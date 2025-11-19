@@ -1,13 +1,12 @@
 #!/bin/bash
+# https://developer.fnnas.com/docs/core-concepts/framework
 
 LOG_FILE="${TRIM_PKGVAR}/info.log"
 PID_FILE="${TRIM_PKGVAR}/app.pid"
 
 DATA_DIR="${TRIM_PKGVAR}/data"
-CFG_FILE="${TRIM_PKGVAR}/data/config.json"
-DEFAULT_PORT=5244
-HTTP_PORT="${openlist_http_port}"
-ADMIN_PASSWORD="${openlist_admin_password}"
+# DATA_DIR="${TRIM_APPDEST_VOL}/@appshare/${TRIM_APPNAME}/data"
+CFG_FILE="${DATA_DIR}/config.json"
 
 # write the command to start your program here 
 
@@ -18,6 +17,8 @@ log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
 }
 
+log_msg "应用安装的存储空间路径： ${TRIM_APPDEST_VOL}"
+
 log_env() {
     log_msg "环境变量列表:"
     # 系统实际前缀是 PKG / RUN / SERVICE 等
@@ -26,40 +27,73 @@ log_env() {
     done
 }
 
-make_sure_init_password() {
-    local flag_file="${TRIM_APPDEST}/.init_pwd"
-    if [ ! -f "${flag_file}" ]; then
-        log_msg "初始化【admin】账户"
-        # bash -c "${TRIM_APPDEST}/bin/openlist start --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
-        #  # 等待服务就绪
-        # for i in {1..30}; do
-        #     curl -s http://127.0.0.1:${DEFAULT_PORT} && break
-        #     sleep 1
-        # done
-        # sleep 2
-        # log_msg "服务就绪，开始设置默认密码"
-        bash -c "${TRIM_APPDEST}/bin/openlist admin set admin --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+make_sure_exist_cfg_file() {
+    if [ ! -f "${CFG_FILE}" ]; then
+        bash -c "${TRIM_APPDEST}/bin/openlist start --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
         sleep 1
-        log_msg "设置 admin 账户默认密码: ${ADMIN_PASSWORD}"
-        touch "${flag_file}"   # 创建标记文件，防止下次重复执行
-        # bash -c "${TRIM_APPDEST}/bin/openlist stop --data --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+        bash -c "${TRIM_APPDEST}/bin/openlist stop --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+        sleep 1
+        log_msg "配置文件不存在，创建默认配置文件"
+    fi
+}
+
+# make_sure_init_password() {
+#     local flag_file="${TRIM_APPDEST}/.init_pwd"
+#     log_msg "检查是否需要初始化 admin 密码: ${openlist_admin_password}"
+#     if [ -n "$openlist_admin_password" ] || [ ! -f "${flag_file}" ]; then
+#         # 标记文件不存在 或 openlist_admin_password 为空 时进入
+#         make_sure_exist_cfg_file
+#         log_msg "初始化【admin】账户"
+#         local new_password="${openlist_admin_password:-admin}"
+#         bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+#         sleep 1
+#         log_msg "设置 admin 账户默认密码: ${new_password}"
+#         touch "${flag_file}"   # 创建标记文件，防止下次重复执行
+#         # 清空变量，防止重复设置密码
+#         unset openlist_admin_password
+#         log_msg "标记已处理，防止重复设置密码"
+#     fi
+#     return 0
+# }
+
+# 更新或追加 key=value
+# 用法: set_kv FILE KEY VALUE
+set_kv(){
+  local file=$1 key=$2 val=$3
+  # 1. 先转义 / 和 &，防止 sed 出错
+  val_esc=$(printf '%s\n' "$val" | sed 's/[\/&]/\\&/g')
+  # 2. 如果键已存在则替换，否则追加
+  if grep -q "^[[:space:]]*${key}[[:space:]]*=" "$file"; then
+    sed -i "s|^[[:space:]]*${key}[[:space:]]*=.*|${key}=${val_esc}|" "$file"
+    log_msg "更新 ${key}=${val} 到 ${file}"
+  else
+    echo "${key}=${val}" >> "$file"
+    log_msg "追加 ${key}=${val} 到 ${file}"
+  fi
+}
+
+reset_admin_password() {
+    log_msg "重置 admin 密码"
+    if [ -n "$openlist_admin_password" ]; then
+        make_sure_exist_cfg_file
+        local new_password="${openlist_admin_password:-admin}"
+        bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+        sleep 1
+        log_msg "设置 admin 账户密码: ${new_password}"
     fi
     return 0
 }
 
 make_sure_change_port() {
-    local target_port=${HTTP_PORT}
-    local tmp="/tmp/config.json.$$.tmp"
+    make_sure_exist_cfg_file
 
     # --- 调试：先确认文件存在、可读、是合法 JSON ---
     log_msg "调试: CFG_FILE=$CFG_FILE 是否存在=$(test -f "$CFG_FILE" && echo yes || echo no)"
     log_msg "调试: 当前用户=$(whoami) 对文件权限=$(stat -c '%a %U:%G' "$CFG_FILE" 2>/dev/null || echo 无法stat)"
-    head -n 1 "$CFG_FILE" 2>>${LOG_FILE} | tee -a ${LOG_FILE}   # 打印首行看是不是JSON
-    # ----------------------------------------------------
 
     # 1. 读当前端口
-    local curr_port
-    curr_port=$(jq -r '.scheme.http_port // '"$DEFAULT_PORT" "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
+    local target_port="${openlist_http_port:-5244}"
+    local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
     log_msg "当前端口=$curr_port, 目标端口=$target_port"
 
     if [[ "$curr_port" == "$target_port" ]]; then
@@ -68,6 +102,7 @@ make_sure_change_port() {
     fi
 
     # 2. 生成新文件
+    local tmp="/tmp/config.json.$$.tmp"
     log_msg "开始写入临时文件 $tmp"
     if ! bash -c "jq --arg p '$target_port' '.scheme.http_port = (\$p | tonumber)' '$CFG_FILE' > '$tmp'" 2>>${LOG_FILE}; then
         log_msg "jq 失败，退出码=$?"
@@ -90,11 +125,13 @@ start_process() {
         return 0
     fi
     
+    log_env
+    # make_sure_init_password
+    reset_admin_password
+    make_sure_change_port
+
     log_msg "Starting process ..."
     # run cmd to start process
-    log_env
-    make_sure_init_password
-    make_sure_change_port
 
     log_msg "CMD = ${CMD}"
     bash -c "${CMD}" >> ${LOG_FILE} 2>&1 &
@@ -103,6 +140,7 @@ start_process() {
     printf "%s" "$!" > ${PID_FILE}
     # log_msg "CMD = ${CMD}"
     # log_msg "pid = $!"
+    sleep 3
     return 0
 }
 

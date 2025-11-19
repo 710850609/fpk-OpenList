@@ -1,5 +1,5 @@
 appname      = OpenList
-version      = 4.1.7-0.1
+version=0.2-4.1.7
 display_name = OpenList
 desc         = <a href="https://doc.oplist.org/">OpenList</a> 是一个有韧性、长期治理、社区驱动的 AList 分支，旨在防御基于信任的开源攻击。</br>一个支持多种存储的文件列表程序，使用 Gin 和 SolidJS</br> 默认账户/密码: admin / admin, 建议登录后修改密码
 
@@ -15,4 +15,4 @@ desktop_uidir=ui
 desktop_applaunchname=OpenList.APPLICATION
 
 service_port = 5244
-checkport    = true
+checkport    = false
