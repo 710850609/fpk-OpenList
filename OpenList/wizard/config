@@ -3,9 +3,13 @@
         "stepTitle": "应用配置",
         "items": [
             {
+                "type": "tips",
+                "helpText": "<strong>服务端口</strong>和应用设置页面的<strong>访问端口</strong>，需要同时修改成同个端口，并重启服务后才能正常访问"
+            },
+            {
                 "type": "text",
                 "field": "openlist_http_port",
-                "label": "服务端口(须改跟访问端口一致，并重启服务)",
+                "label": "服务端口",
                 "initValue": "",
                 "rules": [
                     {
