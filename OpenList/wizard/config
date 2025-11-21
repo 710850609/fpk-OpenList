@@ -5,7 +5,7 @@
             {
                 "type": "text",
                 "field": "openlist_http_port",
-                "label": "OpenList服务端口(须改跟访问端口一致，并重启服务)",
+                "label": "服务端口(须改跟访问端口一致，并重启服务)",
                 "initValue": "",
                 "rules": [
                     {

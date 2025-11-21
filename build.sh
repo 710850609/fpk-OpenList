@@ -1,4 +1,4 @@
-fpk_version=0.2
+fpk_version=0.2.1
 bin_file="OpenList/app/bin/openlist"
 
 if [ ! -f "${bin_file}" ]; then

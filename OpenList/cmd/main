@@ -5,19 +5,17 @@ LOG_FILE="${TRIM_PKGVAR}/info.log"
 PID_FILE="${TRIM_PKGVAR}/app.pid"
 
 DATA_DIR="${TRIM_PKGVAR}/data"
-# DATA_DIR="${TRIM_APPDEST_VOL}/@appshare/${TRIM_APPNAME}/data"
 CFG_FILE="${DATA_DIR}/config.json"
 
 # write the command to start your program here 
 
 # ./openlist  server http://0.0.0.0:5233 --data /vol1/@appdata/OpenList/data 
+# start 产生 dameon/pid 存储的pid可能不准确
 CMD="${TRIM_APPDEST}/bin/openlist server --data ${DATA_DIR} --config ${CFG_FILE}"
 
 log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
 }
-
-log_msg "应用安装的存储空间路径： ${TRIM_APPDEST_VOL}"
 
 log_env() {
     log_msg "环境变量列表:"
@@ -73,9 +71,10 @@ set_kv(){
 }
 
 reset_admin_password() {
-    log_msg "重置 admin 密码"
+    log_msg "检查是否需要重置 admin 密码"
     if [ -n "$openlist_admin_password" ]; then
         make_sure_exist_cfg_file
+        log_msg "开始重置 admin 密码"
         local new_password="${openlist_admin_password:-admin}"
         bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
         sleep 1
@@ -88,8 +87,8 @@ make_sure_change_port() {
     make_sure_exist_cfg_file
 
     # --- 调试：先确认文件存在、可读、是合法 JSON ---
-    log_msg "调试: CFG_FILE=$CFG_FILE 是否存在=$(test -f "$CFG_FILE" && echo yes || echo no)"
-    log_msg "调试: 当前用户=$(whoami) 对文件权限=$(stat -c '%a %U:%G' "$CFG_FILE" 2>/dev/null || echo 无法stat)"
+    # log_msg "调试: CFG_FILE=$CFG_FILE 是否存在=$(test -f "$CFG_FILE" && echo yes || echo no)"
+    # log_msg "调试: 当前用户=$(whoami) 对文件权限=$(stat -c '%a %U:%G' "$CFG_FILE" 2>/dev/null || echo 无法stat)"
 
     # 1. 读当前端口
     local target_port="${openlist_http_port:-5244}"
@@ -137,9 +136,8 @@ start_process() {
     bash -c "${CMD}" >> ${LOG_FILE} 2>&1 &
     
     # write pid to pidfile
-    printf "%s" "$!" > ${PID_FILE}
-    # log_msg "CMD = ${CMD}"
-    # log_msg "pid = $!"
+    # printf "%s" "$!" > "${PID_FILE}.txt"
+    printf "%s\n" $(pgrep -f "${CMD}") > ${PID_FILE}
     sleep 3
     return 0
 }
@@ -184,8 +182,10 @@ stop_process() {
 check_process() {
     local pid=$1
     if kill -0 "${pid}" 2>/dev/null; then
+        # log_msg "check status: pid=${pid} is running"
         return 0  # process exist
     else
+        log_msg "check status: pid=${pid} is not running"
         return 1  # process not exist
     fi
 }
