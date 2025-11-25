@@ -2,7 +2,7 @@ name: build fnos package (fpk)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "created" ]
 
 jobs:
   build:
@@ -11,12 +11,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # - name: Verify tag format
-      #   run: |
-      #     if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      #       echo "Tag does not match vX.X.X format. Exiting."
-      #       exit 1
-      #     fi
+      - name: Verify tag format
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag does not match vX.X.X format. Exiting."
+            exit 1
+          fi
 
       - name: Download fnpack
         run: |
