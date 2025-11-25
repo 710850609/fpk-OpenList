@@ -1,4 +1,4 @@
-name: build fnos package (fpk)
+name: test build fnos package (fpk)
 
 on:
   push:
