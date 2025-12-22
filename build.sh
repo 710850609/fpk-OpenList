@@ -4,16 +4,17 @@ build_all="$1"
 
 if [ ! -f "${bin_file}" ] || [ "${build_all}" == "all" ]; then
     echo "openlist 预编译文件不存在: $bin_file, 开始下载预编译版本..."
-    wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
+    # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     # wget -O openlist-linux-amd64.tar.gz "https://ghproxy.cn/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     # wget -O openlist-linux-amd64.tar.gz "https://gh.llkk.cc/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.8/openlist-linux-amd64.tar.gz"
-    echo "下载完成，开始解压文件到 $bin_file 目录"
+    echo "下载完成，开始解压文件"
     tar -xzf openlist-linux-amd64.tar.gz
-
+    echo "$(ls -lh)"
+    echo "移动文件到 $bin_file 位置"
     mv openlist "$bin_file"
-    echo "删除下载的压缩包"
-    rm -f openlist-linux-amd64.tar.gz
+    # echo "删除下载的压缩包"
+    # rm -f openlist-linux-amd64.tar.gz
 fi
 
 
