@@ -4,7 +4,7 @@ build_all="$1"
 
 if [ ! -f "${bin_file}" ] || [ "${build_all}" == "all" ]; then
     echo "openlist 预编译文件不存在: $bin_file, 开始下载预编译版本..."
-    # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
+    wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     # wget -O openlist-linux-amd64.tar.gz "https://ghproxy.cn/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     # wget -O openlist-linux-amd64.tar.gz "https://gh.llkk.cc/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.8/openlist-linux-amd64.tar.gz"
