@@ -3,6 +3,22 @@
         "stepTitle": "应用配置",
         "items": [
             {
+                "type": "text",
+                "field": "openlist_http_port",
+                "label": "服务端口 (需要1024以上高位端口，否则权限不足)",
+                "initValue": "5244",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入服务端口"
+                    },
+                    {
+                        "pattern": "^[0-9]+$",
+                        "message": "端口号必须是数字"
+                    }
+                ]
+            },            
+            {
                 "type": "password",
                 "field": "openlist_admin_password",
                 "label": "admin密码",

@@ -124,10 +124,10 @@ start_process() {
         return 0
     fi
     
-    log_env
+    # log_env
     # make_sure_init_password
-    reset_admin_password
-    make_sure_change_port
+    # reset_admin_password
+    # make_sure_change_port
 
     log_msg "Starting process ..."
     # run cmd to start process

@@ -3,18 +3,14 @@
         "stepTitle": "应用配置",
         "items": [
             {
-                "type": "tips",
-                "helpText": "<strong>服务端口</strong>和应用设置页面的<strong>访问端口</strong>，需要同时修改成同个端口，并重启服务后才能正常访问"
-            },
-            {
                 "type": "text",
                 "field": "openlist_http_port",
-                "label": "服务端口",
+                "label": "服务端口 (需要1024以上高位端口)",
                 "initValue": "",
                 "rules": [
                     {
-                        "required": false,
-                        "message": "请输入端口号"
+                        "required": true,
+                        "message": "请输入服务端口"
                     },
                     {
                         "pattern": "^[0-9]+$",

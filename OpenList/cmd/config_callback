@@ -2,4 +2,77 @@
 
 ### This script is called after the user change environment variables in application setting page.
 
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+
+DATA_DIR="${TRIM_PKGVAR}/data"
+CFG_FILE="${DATA_DIR}/config.json"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
+}
+
+make_sure_exist_cfg_file() {
+    if [ ! -f "${CFG_FILE}" ]; then
+        bash -c "${TRIM_APPDEST}/bin/openlist start --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+        sleep 1
+        bash -c "${TRIM_APPDEST}/bin/openlist stop --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+        sleep 1
+        log_msg "配置文件不存在，创建默认配置文件"
+    fi
+}
+
+make_sure_change_port() {
+    make_sure_exist_cfg_file
+
+    # --- 调试：先确认文件存在、可读、是合法 JSON ---
+    # log_msg "调试: CFG_FILE=$CFG_FILE 是否存在=$(test -f "$CFG_FILE" && echo yes || echo no)"
+    # log_msg "调试: 当前用户=$(whoami) 对文件权限=$(stat -c '%a %U:%G' "$CFG_FILE" 2>/dev/null || echo 无法stat)"
+
+    # 1. 读当前端口
+    local target_port="${openlist_http_port:-5244}"
+    local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
+    log_msg "当前端口=$curr_port, 目标端口=$target_port"
+
+    if [[ "$curr_port" == "$target_port" ]]; then
+        log_msg "端口相同，跳过"
+        return 0
+    fi
+
+    # 2. 生成新文件
+    local tmp="/tmp/config.json.$$.tmp"
+    log_msg "开始写入临时文件 $tmp"
+    if ! bash -c "jq --arg p '$target_port' '.scheme.http_port = (\$p | tonumber)' '$CFG_FILE' > '$tmp'" 2>>${LOG_FILE}; then
+        log_msg "jq 失败，退出码=$?"
+        return 1
+    fi
+
+    # 3. 原子替换
+    log_msg "mv $tmp -> $CFG_FILE"
+    if ! mv "$tmp" "$CFG_FILE" 2>>${LOG_FILE}; then
+        log_msg "mv 失败，退出码=$?"
+        return 1
+    fi
+
+    rm -f "$tmp"
+    log_msg "配置端口:【${target_port}】完成"
+}
+
+reset_admin_password() {
+    log_msg "检查是否需要重置 admin 密码"
+    if [ -n "$openlist_admin_password" ]; then
+        make_sure_exist_cfg_file
+        log_msg "开始重置 admin 密码"
+        local new_password="${openlist_admin_password:-admin}"
+        bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
+        sleep 1
+        log_msg "设置 admin 账户密码: ${new_password}"
+    fi
+    return 0
+}
+
+reset_admin_password
+make_sure_change_port
+
 exit 0
