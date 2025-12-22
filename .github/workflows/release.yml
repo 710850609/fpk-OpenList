@@ -83,7 +83,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.package.outputs.tag }}
-          name: Release ${{ steps.package.outputs.tag }}
+          name: ${{ steps.package.outputs.tag }}
           artifacts: "release/*.fpk"
           prerelease: ${{ steps.package.outputs.prerelease }}
           skipIfReleaseExists: true
