@@ -1,3 +1,4 @@
 OpenList*.fpk
 OpenList/app/bin/openlist
-openlist-*.tar.gz
+openlist*.tar.gz
+build_tmp

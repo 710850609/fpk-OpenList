@@ -3,9 +3,15 @@
 
 <a href="https://developer.fnnas.com/docs/guide">飞牛应用开放平台 开发文档</a>
 </br>
-<a href="https://ghproxy.cn/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64-lite.tar.gz">OpenList程序下载</a>
+<a href="https://github.com/OpenListTeam/OpenList/releases/">OpenList程序下载</a>
 
 更新内容
+### 4.1.8-4
+- 新增支持arm64
+- 完善端口校验
+- 规范化版本号定义
+- 修改协议，保持和OpenList一致
+
 ### 4.1.8-build-0.3.0
 - 规范化版本号定义
 - 支持飞牛最低版本1.1.8

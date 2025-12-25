@@ -1,4 +1,4 @@
-name: Build and publish fpk
+name: Build and publish fpk for multiple architectures
 
 on:
   push:
@@ -9,82 +9,124 @@ on:
 permissions:
   contents: write
 
-jobs:
-  build-and-release:
+env:
+  NODE_VERSION: "18"
+  PYTHON_VERSION: '3.11'
+
+jobs:  
+  # 主 job，负责设置变量
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set-tag.outputs.tag }}
+      prerelease: ${{ steps.set-tag.outputs.prerelease }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Download and setup fnpack
+      - name: Set tag and prerelease info
+        id: set-tag
         run: |
-          echo "下载fnpack"
-          wget -O fnpack "https://static2.fnnas.com/fnpack/fnpack-1.0.4-linux-amd64"
-          chmod +x fnpack
-          # 将 fnpack 移动到可执行目录
-          sudo mv fnpack /usr/local/bin/
-
-      - name: Run build package
-        run: |
-          echo "开始构建fpk"
-          chmod +x ./build.sh || true
-          ./build.sh all
-
-      - id: package
-        name: Find and prepare .fpk file
-        run: |
-          # 查找构建生成的.fpk文件
-          FPK_FILE=$(ls *.fpk 2>/dev/null | head -1)
-          
-          if [ -z "$FPK_FILE" ]; then
-            echo "错误：未找到.fpk文件"
-            ls -la
-            exit 1
-          fi
-          
-          echo "找到FPK文件: $FPK_FILE"
-          
-          # 创建release目录
-          mkdir -p release
-          
-          # 复制到release目录
-          cp "$FPK_FILE" "release/OpenList.fpk"
-          
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF##*/}"
           else
             TAG="run-${GITHUB_RUN_NUMBER}"
           fi
           
-          # prerelease only when tag ends with -pre
-          if [[ "${TAG}" =~ -pre$ ]]; then
+          if [[ "$TAG" == run-* ]] || [[ "${TAG}" == *dev* ]] || [[ "${TAG}" == *pre* ]] || [[ "${TAG}" == *beta* ]]; then
             PRE=true
           else
             PRE=false
           fi
           
-          echo "fpk_name=$FPK_FILE" >> $GITHUB_OUTPUT
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "prerelease=${PRE}" >> $GITHUB_OUTPUT
-          echo "fpk_path=release/$FPK_FILE" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "prerelease=$PRE" >> $GITHUB_OUTPUT
 
-      - name: Upload .fpk as workflow artifact
+  build-multi-arch:
+    needs: setup
+    strategy:
+      matrix:
+        include:
+          - arch: linux-amd64
+            runner: ubuntu-latest
+          - arch: linux-arm64
+            runner: ubuntu-latest-arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run build
+        run: |          
+          chmod +x ./fnpack.sh 2>/dev/null || true
+          chmod +x ./build.sh 2>/dev/null || true
+          ./build.sh arch=${{ matrix.arch }} build_pre="${{ needs.setup.outputs.prerelease }}" 2>/dev/null || true
+
+      - name: Prepare artifact
+        run: |
+          FPK_FILE=$(ls *.fpk 2>/dev/null | head -1)
+          if [ -z "$FPK_FILE" ]; then
+            echo "错误：未找到.fpk文件"
+            ls -la
+            exit 1
+          fi
+          
+          mkdir -p release
+          if [ "${{ needs.setup.outputs.prerelease }}" == "true" ]; then
+            # 正式版去除版本号
+            NEW_FPK_NAME="OpenList-${{ matrix.arch }}.fpk"
+            cp "$FPK_FILE" "release/$NEW_FPK_NAME"
+          echo "准备完成: $NEW_FPK_NAME"
+          else
+            cp "$FPK_FILE" "release/$FPK_FILE"
+            echo "准备完成: $FPK_FILE"
+          fi
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fpk
-          path: "release/*.fpk"
+          name: fpk-${{ matrix.arch }}
+          path: release/
+          retention-days: 1
 
-      - name: Create GitHub Release and upload asset
+  create-release:
+    needs: 
+      - setup
+      - build-multi-arch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release directory
+        run: |
+          mkdir -p combined-release
+    
+      - name: Download amd64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fpk-amd64
+          path: combined-release
+          
+      - name: Download arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fpk-arm64
+          path: combined-release
+
+      - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.package.outputs.tag }}
-          name: ${{ steps.package.outputs.tag }}
-          artifacts: "release/*.fpk"
-          prerelease: ${{ steps.package.outputs.prerelease }}
+          tag: ${{ needs.setup.outputs.tag }}
+          name: ${{ needs.setup.outputs.tag }}
+          artifacts: "combined-release/*"
+          prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release summary
+        if: always()
+        run: |
+          echo "=== 发布总结 ==="
+          echo "版本: ${{ needs.setup.outputs.tag }}"
+          echo "预发布: ${{ needs.setup.outputs.prerelease }}"
+          echo "包含的文件:"
+          ls -la combined-release/
+          echo "================"

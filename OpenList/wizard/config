@@ -5,7 +5,7 @@
             {
                 "type": "text",
                 "field": "openlist_http_port",
-                "label": "服务端口 (需要1024以上高位端口)",
+                "label": "服务端口",
                 "initValue": "",
                 "rules": [
                     {
@@ -13,8 +13,8 @@
                         "message": "请输入服务端口"
                     },
                     {
-                        "pattern": "^[0-9]+$",
-                        "message": "端口号必须是数字"
+                        "pattern": "^[1-9]\\d*$",
+                        "message": "端口号必须是正数"
                     }
                 ]
             },

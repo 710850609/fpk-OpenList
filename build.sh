@@ -1,32 +1,70 @@
-fpk_version=0.3.0
-bin_file="OpenList/app/bin/openlist"
-build_all="$1"
+build_version=4
 
-if [ ! -f "${bin_file}" ] || [ "${build_all}" == "all" ]; then
+declare -A PARAMS
+
+# 默认值
+PARAMS[build_all]="false"
+PARAMS[build_pre]="false"
+PARAMS[arch]="linux-amd64"
+
+# 解析 key=value 格式的参数
+for arg in "$@"; do
+  if [[ "$arg" == *=* ]]; then
+    key="${arg%%=*}"
+    value="${arg#*=}"
+    PARAMS["$key"]="$value"
+  else
+    # 处理标志参数
+    case "$arg" in
+      --pre)
+        PARAMS[pre]="true"
+        ;;
+      *)
+        echo "忽略未知参数: $arg"
+        ;;
+    esac
+  fi
+done
+
+bin_file="OpenList/app/bin/openlist"
+build_all="${PARAMS[build_all]}"
+build_pre="${PARAMS[build_pre]}"
+arch="${PARAMS[arch]}"
+echo "build_all: ${build_all}"
+echo "pre: ${build_pre}"
+echo "arch: ${arch}"
+
+
+if [ "${build_all}" == "true" ] || [ ! -f "${bin_file}" ]; then
     echo "openlist 预编译文件不存在: $bin_file, 开始下载预编译版本..."
-    wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
-    # wget -O openlist-linux-amd64.tar.gz "https://ghproxy.cn/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
-    # wget -O openlist-linux-amd64.tar.gz "https://gh.llkk.cc/https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
-    # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.8/openlist-linux-amd64.tar.gz"
+    # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
+    download_url="https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-${arch}.tar.gz"
+    download_url="https://gh.llkk.cc/${download_url}"
+    echo "开始下载OpenList: ${download_url}"
+    wget -O openlist.tar.gz "${download_url}"
     echo "下载完成，开始解压文件"
-    tar -xzf openlist-linux-amd64.tar.gz
+    tar -xzf openlist.tar.gz
     echo "$(ls -lh)"
     echo "移动文件到 $bin_file 位置"
     mv openlist "$bin_file"
     # echo "删除下载的压缩包"
-    # rm -f openlist-linux-amd64.tar.gz
+    # rm -f openlist.tar.gz
 fi
 
 
 openlist_version=$(./OpenList/app/bin/openlist version | awk '/^Version:/{print $2}' | sed 's/^v//')
 echo "当前openlist版本: ${openlist_version}"
-app_version="${openlist_version}-build-${fpk_version}"
-sed -i "s|^[[:space:]]*version[[:space:]]*=.*|version=${app_version}|" 'OpenList/manifest'
-echo "设置 FPK 版本号为: ${app_version}"
+fpk_version="${openlist_version}-${build_version}"
+if [ "$build_pre" == 'true' ];then 
+    fpk_version="${fpk_version}-pre"
+fi
+sed -i "s|^[[:space:]]*version[[:space:]]*=.*|version=${fpk_version}|" 'OpenList/manifest'
+echo "设置 FPK 版本号为: ${fpk_version}"
 
 echo "开始打包 OpenList.fpk"
-fnpack build --directory OpenList/
+# fnpack build --directory OpenList/
+./fnpack.sh build --directory OpenList
 
-fpk_name="OpenList-${app_version}.fpk"
+fpk_name="OpenList-${arch}-${fpk_version}.fpk"
 mv OpenList.fpk "${fpk_name}"
 echo "打包完成: ${fpk_name}"
