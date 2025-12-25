@@ -1,4 +1,4 @@
-name: Build and publish fpk for multiple architectures
+name: release fpk
 
 on:
   push:
@@ -50,14 +50,15 @@ jobs:
           - arch: linux-amd64
             runner: ubuntu-latest
           - arch: linux-arm64
-            runner: ubuntu-latest-arm64
+            runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run build
-        run: |          
+        run: |
+          echo "开始构建架构: ${{ matrix.arch }}"
           chmod +x ./fnpack.sh 2>/dev/null || true
           chmod +x ./build.sh 2>/dev/null || true
           ./build.sh arch=${{ matrix.arch }} build_pre="${{ needs.setup.outputs.prerelease }}" 2>/dev/null || true
@@ -104,7 +105,7 @@ jobs:
         with:
           name: fpk-amd64
           path: combined-release
-          
+
       - name: Download arm64 artifact
         uses: actions/download-artifact@v4
         with:

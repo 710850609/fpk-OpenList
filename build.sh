@@ -39,7 +39,7 @@ if [ "${build_all}" == "true" ] || [ ! -f "${bin_file}" ]; then
     echo "openlist 预编译文件不存在: $bin_file, 开始下载预编译版本..."
     # wget -O openlist-linux-amd64.tar.gz "https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-linux-amd64.tar.gz"
     download_url="https://github.com/OpenListTeam/OpenList/releases/latest/download/openlist-${arch}.tar.gz"
-    download_url="https://gh.llkk.cc/${download_url}"
+    # download_url="https://gh.llkk.cc/${download_url}"
     echo "开始下载OpenList: ${download_url}"
     wget -O openlist.tar.gz "${download_url}"
     echo "下载完成，开始解压文件"
