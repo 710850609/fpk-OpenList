@@ -45,13 +45,15 @@ if [ "${build_all}" == "true" ] || [ ! -f "${bin_file}" ]; then
     echo "下载完成，开始解压文件"
     tar -xzf openlist.tar.gz
     echo "$(ls -lh)"
+    mkdir -p OpenList/app/bin/
     echo "移动文件到 $bin_file 位置"
     mv openlist "$bin_file"
     # echo "删除下载的压缩包"
     # rm -f openlist.tar.gz
 fi
 
-mkdir -p OpenList/app/bin/
+echo "$(file ./OpenList/app/bin/openlist)"
+echo "$(./OpenList/app/bin/openlist version)"
 openlist_version=$(./OpenList/app/bin/openlist version | awk '/^Version:/{print $2}' | sed 's/^v//')
 echo "当前openlist版本: ${openlist_version}"
 fpk_version="${openlist_version}-${build_version}"
