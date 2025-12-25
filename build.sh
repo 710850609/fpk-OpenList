@@ -63,6 +63,18 @@ fi
 sed -i "s|^[[:space:]]*version[[:space:]]*=.*|version=${fpk_version}|" 'OpenList/manifest'
 echo "设置 FPK 版本号为: ${fpk_version}"
 
+# platform 取值 x86, arm, all
+platform="all"
+if [ "${arch}" == "linux-amd64" ]; then
+    platform="x86"
+elif [ "${arch}" == "linux-arm64" ]; then
+    platform="arm"
+else
+    echo "未知的 arch 参数，使用默认值: ${arch}"
+fi
+echo "设置 platform 为: ${platform}"
+sed -i "s|^[[:space:]]*platform[[:space:]]*=.*|platform=${platform}|" 'OpenList/manifest'
+
 echo "开始打包 OpenList.fpk"
 # fnpack build --directory OpenList/
 ./fnpack.sh build --directory OpenList
