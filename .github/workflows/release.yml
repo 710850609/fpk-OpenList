@@ -103,13 +103,13 @@ jobs:
       - name: Download amd64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-amd64
+          name: fpk-linux-amd64
           path: combined-release
 
       - name: Download arm64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-arm64
+          name: fpk-linux-arm64
           path: combined-release
 
       - name: Create GitHub Release
