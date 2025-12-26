@@ -6,6 +6,9 @@
 <a href="https://github.com/OpenListTeam/OpenList/releases/">OpenList程序下载</a>
 
 更新内容
+### 4.1.8-5
+- 优化图标显示
+
 ### 4.1.8-4
 - 新增支持arm64
 - 完善端口校验

@@ -2,7 +2,7 @@
     ".url": {
         "OpenList.Application": {
             "title": "OpenList",
-            "icon": "images/icon_{0}.jpg",
+            "icon": "images/icon_{0}.png",
             "type": "url",
             "protocol": "http",
             "port": "${openlist_http_port}",
