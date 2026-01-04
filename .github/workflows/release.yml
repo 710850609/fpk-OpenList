@@ -122,8 +122,8 @@ jobs:
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ needs.setup.outputs.tag }}
-          name: ${{ steps.build.outputs.release_name }}
+          tag: ${{ steps.build.outputs.release_name }}
+          name: ${{ needs.setup.outputs.tag }}
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
