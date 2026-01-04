@@ -6,6 +6,10 @@
 <a href="https://github.com/OpenListTeam/OpenList/releases/">OpenList程序下载</a>
 
 更新内容
+### 4.1.9-5
+- 支持同个分支构建最新版本
+- 构建OpenList-4.1.9版本
+
 ### 4.1.8-5
 - 优化图标显示
 

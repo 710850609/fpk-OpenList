@@ -44,6 +44,8 @@ jobs:
 
   build-multi-arch:
     needs: setup
+    outputs:
+      release_name: ${{ steps.build.outputs.release_name }}
     strategy:
       matrix:
         include:
@@ -83,6 +85,11 @@ jobs:
             echo "准备完成: $NEW_FPK_NAME"
           fi
 
+          # 读取版本号
+          version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' ./OpenList/manifest | sed 's/^"\|"$//g')
+          echo "$version"
+          echo "release_name=$version" >> $GITHUB_OUTPUT
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -116,7 +123,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ needs.setup.outputs.tag }}
-          name: ${{ needs.setup.outputs.tag }}
+          name: ${{ steps.build.outputs.release_name }}
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
