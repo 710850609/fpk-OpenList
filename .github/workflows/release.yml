@@ -45,7 +45,7 @@ jobs:
   build-multi-arch:
     needs: setup
     outputs:
-      release_name: ${{ steps.release-version.outputs.release_name }}
+      release_version: ${{ steps.release-version.outputs.version }}
     strategy:
       matrix:
         include:
@@ -92,13 +92,13 @@ jobs:
           if [ -z "$FPK_FILE" ]; then
             echo "错误：未找到.fpk文件"
             ls -la
-            echo "release_name='0-error'" >> $GITHUB_OUTPUT
+            echo "version='0-error'" >> $GITHUB_OUTPUT
             exit 1
           fi
           # 读取版本号
           version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' ./OpenList/manifest | sed 's/^"\|"$//g')
-          echo "$version"
-          echo "release_name=$version" >> $GITHUB_OUTPUT
+          echo "构建FPK版本: $version"
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -132,8 +132,8 @@ jobs:
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ needs.build-multi-arch.outputs.release_name }}
-          name: ${{ needs.setup.outputs.tag }}
+          tag: ${{ needs.setup.outputs.tag }}
+          name: ${{ needs.build-multi-arch.outputs.release_version }}
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
@@ -143,7 +143,8 @@ jobs:
         if: always()
         run: |
           echo "=== 发布总结 ==="
-          echo "版本: ${{ needs.setup.outputs.tag }}"
+          echo "代码分支/标签: ${{ needs.setup.outputs.tag }}"
+          echo "版本:  ${{ needs.build-multi-arch.outputs.release_version }}
           echo "预发布: ${{ needs.setup.outputs.prerelease }}"
           echo "包含的文件:"
           ls -la combined-release/
