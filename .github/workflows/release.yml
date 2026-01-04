@@ -144,7 +144,7 @@ jobs:
         run: |
           echo "=== 发布总结 ==="
           echo "代码分支/标签: ${{ needs.setup.outputs.tag }}"
-          echo "版本:  ${{ needs.build-multi-arch.outputs.release_version }}
+          echo "版本:  ${{ needs.build-multi-arch.outputs.release_version }}"
           echo "预发布: ${{ needs.setup.outputs.prerelease }}"
           echo "包含的文件:"
           ls -la combined-release/
