@@ -45,7 +45,7 @@ jobs:
   build-multi-arch:
     needs: setup
     outputs:
-      release_name: ${{ steps.build.outputs.release_name }}
+      release_name: ${{ steps.release-version.outputs.release_name }}
     strategy:
       matrix:
         include:
@@ -85,6 +85,16 @@ jobs:
             echo "准备完成: $NEW_FPK_NAME"
           fi
 
+      - name: Get release version
+        id: release-version
+        run: |
+          FPK_FILE=$(ls *.fpk 2>/dev/null | head -1)
+          if [ -z "$FPK_FILE" ]; then
+            echo "错误：未找到.fpk文件"
+            ls -la
+            echo "release_name='0-error'" >> $GITHUB_OUTPUT
+            exit 1
+          fi
           # 读取版本号
           version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' ./OpenList/manifest | sed 's/^"\|"$//g')
           echo "$version"
@@ -122,7 +132,7 @@ jobs:
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.build.outputs.release_name }}
+          tag: ${{ needs.build-multi-arch.outputs.release_name }}
           name: ${{ needs.setup.outputs.tag }}
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
