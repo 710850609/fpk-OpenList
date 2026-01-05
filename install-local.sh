@@ -1,1 +1,1 @@
-rm -rf /vol1/@appdata/OpenList && cd OpenList && appcenter-cli install-local --env ../config.env && cd ../
+rm -rf /vol1/@appdata/OpenList && cd OpenList && sudo appcenter-cli install-local --env ../config.env && cd ../
