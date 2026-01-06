@@ -30,7 +30,8 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
-            TAG=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null | grep . || echo "unknown")          
+            OpenListVersion=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null | grep . || echo "unknown")          
+            TAG="release/${OpenListVersion}"
           else
             TAG="run-${GITHUB_RUN_NUMBER}"
           fi
@@ -134,8 +135,8 @@ jobs:
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ needs.setup.outputs.tag }}
           name: ${{ needs.build-multi-arch.outputs.release_version }}
+          tag: ${{ needs.setup.outputs.tag }}
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
