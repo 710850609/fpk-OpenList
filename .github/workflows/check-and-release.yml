@@ -8,6 +8,9 @@ on:
 jobs:
   job:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read        # 只需要读代码
+      actions: write        # ← 关键：允许触发 workflow_dispatch
     steps:
       - uses: actions/checkout@v4 
 
