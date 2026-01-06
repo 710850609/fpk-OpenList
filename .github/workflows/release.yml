@@ -29,7 +29,7 @@ jobs:
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF##*/}"
-          elif [[ "${GITHUB_REF}" == refs/heads/master ]]; then
+          elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             TAG=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null | grep . || echo "unknown")          
           else
             TAG="run-${GITHUB_RUN_NUMBER}"
