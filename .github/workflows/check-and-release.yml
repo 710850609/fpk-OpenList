@@ -1,4 +1,4 @@
-name: demo-persist-var
+name: Daily check release
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4 
-      
+
       # ---------- 1. 读取上次的值 ----------
       - name: Try to download last artifact
         id: dl
