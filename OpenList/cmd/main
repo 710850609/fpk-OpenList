@@ -17,43 +17,6 @@ log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
 }
 
-log_env() {
-    log_msg "环境变量列表:"
-    # 系统实际前缀是 PKG / RUN / SERVICE 等
-    printenv | grep -E '^(openlist_|TRIM_)' | while IFS='=' read -r k v; do
-        log_msg "$k=$v"
-    done
-}
-
-make_sure_exist_cfg_file() {
-    if [ ! -f "${CFG_FILE}" ]; then
-        bash -c "${TRIM_APPDEST}/bin/openlist start --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
-        sleep 1
-        bash -c "${TRIM_APPDEST}/bin/openlist stop --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
-        sleep 1
-        log_msg "配置文件不存在，创建默认配置文件"
-    fi
-}
-
-# make_sure_init_password() {
-#     local flag_file="${TRIM_APPDEST}/.init_pwd"
-#     log_msg "检查是否需要初始化 admin 密码: ${openlist_admin_password}"
-#     if [ -n "$openlist_admin_password" ] || [ ! -f "${flag_file}" ]; then
-#         # 标记文件不存在 或 openlist_admin_password 为空 时进入
-#         make_sure_exist_cfg_file
-#         log_msg "初始化【admin】账户"
-#         local new_password="${openlist_admin_password:-admin}"
-#         bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
-#         sleep 1
-#         log_msg "设置 admin 账户默认密码: ${new_password}"
-#         touch "${flag_file}"   # 创建标记文件，防止下次重复执行
-#         # 清空变量，防止重复设置密码
-#         unset openlist_admin_password
-#         log_msg "标记已处理，防止重复设置密码"
-#     fi
-#     return 0
-# }
-
 # 更新或追加 key=value
 # 用法: set_kv FILE KEY VALUE
 set_kv(){
@@ -70,67 +33,35 @@ set_kv(){
   fi
 }
 
-reset_admin_password() {
-    log_msg "检查是否需要重置 admin 密码"
-    if [ -n "$openlist_admin_password" ]; then
-        make_sure_exist_cfg_file
-        log_msg "开始重置 admin 密码"
-        local new_password="${openlist_admin_password:-admin}"
-        bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1 &
-        sleep 1
-        log_msg "设置 admin 账户密码: ${new_password}"
-    fi
-    return 0
-}
-
-make_sure_change_port() {
-    make_sure_exist_cfg_file
-
-    # --- 调试：先确认文件存在、可读、是合法 JSON ---
-    # log_msg "调试: CFG_FILE=$CFG_FILE 是否存在=$(test -f "$CFG_FILE" && echo yes || echo no)"
-    # log_msg "调试: 当前用户=$(whoami) 对文件权限=$(stat -c '%a %U:%G' "$CFG_FILE" 2>/dev/null || echo 无法stat)"
-
-    # 1. 读当前端口
-    local target_port="${openlist_http_port:-5244}"
-    local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
-    log_msg "当前端口=$curr_port, 目标端口=$target_port"
-
-    if [[ "$curr_port" == "$target_port" ]]; then
-        log_msg "端口相同，跳过"
-        return 0
-    fi
-
-    # 2. 生成新文件
-    local tmp="/tmp/config.json.$$.tmp"
-    log_msg "开始写入临时文件 $tmp"
-    if ! bash -c "jq --arg p '$target_port' '.scheme.http_port = (\$p | tonumber)' '$CFG_FILE' > '$tmp'" 2>>${LOG_FILE}; then
-        log_msg "jq 失败，退出码=$?"
+check_port_in_use() {
+    local port=$1
+    # Linux 用 ss，没有 ss 再用 netstat
+    if command -v ss >/dev/null 2>&1; then
+        ss -tln | grep -q ":$port "
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tln | grep -q ":$port "
+    else
+        # 都检测不到就保守一点：当“未占用”继续往下走
         return 1
     fi
-
-    # 3. 原子替换
-    log_msg "mv $tmp -> $CFG_FILE"
-    if ! mv "$tmp" "$CFG_FILE" 2>>${LOG_FILE}; then
-        log_msg "mv 失败，退出码=$?"
-        return 1
-    fi
-
-    rm -f "$tmp"
-    log_msg "配置端口:【${target_port}】完成"
 }
 
 start_process() {
     if status; then
         return 0
     fi
-    
-    # log_env
-    # make_sure_init_password
-    # reset_admin_password
-    # make_sure_change_port
 
     log_msg "Starting process ..."
     # run cmd to start process
+
+    local target_port="${openlist_http_port}"
+    if check_port_in_use "$target_port"; then
+        log_msg "目标端口 $target_port 已被占用，放弃启动"
+        # 在应用启动、安装、更新等过程中遇到错误时，可以向 TRIM_TEMP_LOGFILE 写入错误信息，然后退出脚本并返回错误码 1
+        # 系统会自动将错误日志在前端展示为用户可见的内容（Dialog对话框形式）
+        echo "端口 $target_port 已被占用。请停止使用$target_port的进程后再启动服务，或是修改服务为其他端口" > "${TRIM_TEMP_LOGFILE}"
+        exit 1
+    fi
 
     log_msg "CMD = ${CMD}"
     bash -c "${CMD}" >> ${LOG_FILE} 2>&1 &
