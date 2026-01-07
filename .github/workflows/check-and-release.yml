@@ -3,7 +3,8 @@ name: Daily check release
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    # OpenList 发布新版本通常在GM+8的12点前，此处设置为每天的04:00 UTC（即GMT+0时间），相当于GMT+8的12点
+    - cron: '0 0 4 * * ?'
 
 jobs:
   job:
