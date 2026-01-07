@@ -59,7 +59,7 @@ start_process() {
         log_msg "目标端口 $target_port 已被占用，放弃启动"
         # 在应用启动、安装、更新等过程中遇到错误时，可以向 TRIM_TEMP_LOGFILE 写入错误信息，然后退出脚本并返回错误码 1
         # 系统会自动将错误日志在前端展示为用户可见的内容（Dialog对话框形式）
-        echo "端口 $target_port 已被占用。请停止使用$target_port的进程后再启动服务，或是修改服务为其他端口" > "${TRIM_TEMP_LOGFILE}"
+        echo "端口 $target_port 已被占用。请停止 $target_port 的进程，或是修改服务为其他端口后再启动服务" > "${TRIM_TEMP_LOGFILE}"
         exit 1
     fi
 
