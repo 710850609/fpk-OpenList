@@ -18,7 +18,7 @@ jobs:
       - name: Check if need a new release
         id: need_release
         run: |
-          REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null | grep . || echo "unknown")
+          REAL_VERSION=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//' 2>/dev/null | grep . || echo "unknown")
           echo "获取最新OpenList版本: $REAL_VERSION"
           echo "version=$REAL_VERSION" >> $GITHUB_OUTPUT
           if git ls-remote --tags origin "refs/tags/release/$REAL_VERSION*" | grep -q .; then
