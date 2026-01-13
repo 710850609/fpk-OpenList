@@ -18,7 +18,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      tag: ${{ steps.set-tag.outputs.tag }}
+      # tag: ${{ steps.set-tag.outputs.tag }}
       prerelease: ${{ steps.set-tag.outputs.prerelease }}
     steps:
       - name: Checkout repository
@@ -31,6 +31,7 @@ jobs:
             TAG="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             OpenListVersion=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//' 2>/dev/null | grep . || echo "unknown")
+            echo "OpenList最新版本: $OpenListVersion"
             TAG="release/${OpenListVersion}"
           else
             TAG="run-${GITHUB_RUN_NUMBER}"
@@ -136,7 +137,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: ${{ needs.build-multi-arch.outputs.release_version }}
-          tag: ${{ needs.setup.outputs.tag }}
+          tag: "release/${{ needs.setup.outputs.tag }}"
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
@@ -146,7 +147,7 @@ jobs:
         if: always()
         run: |
           echo "=== 发布总结 ==="
-          echo "代码分支/标签: ${{ needs.setup.outputs.tag }}"
+          echo "代码分支/标签: release/${{ needs.setup.outputs.tag }}"
           echo "版本:  ${{ needs.build-multi-arch.outputs.release_version }}"
           echo "预发布: ${{ needs.setup.outputs.prerelease }}"
           echo "包含的文件:"
