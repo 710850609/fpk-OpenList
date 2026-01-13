@@ -8,9 +8,18 @@ PID_FILE="${TRIM_PKGVAR}/app.pid"
 
 DATA_DIR="${TRIM_PKGVAR}/data"
 CFG_FILE="${DATA_DIR}/config.json"
+DOWNLOAD_DIR="${TRIM_PKGVAR}"
 
 log_msg() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
+}
+
+alarm_and_exit() {
+    # 在应用启动、安装、更新等过程中遇到错误时，可以向 TRIM_TEMP_LOGFILE 写入错误信息，然后退出脚本并返回错误码 1
+    # 系统会自动将错误日志在前端展示为用户可见的内容（Dialog对话框形式）
+    log_msg "$1"
+    echo "$1" > "${TRIM_TEMP_LOGFILE}"
+    exit 1
 }
 
 make_sure_exist_cfg_file() {
@@ -55,10 +64,7 @@ make_sure_change_port() {
 
     if check_port_in_use "$target_port"; then
         log_msg "目标端口 $target_port 已被占用"
-        # 在应用启动、安装、更新等过程中遇到错误时，可以向 TRIM_TEMP_LOGFILE 写入错误信息，然后退出脚本并返回错误码 1
-        # 系统会自动将错误日志在前端展示为用户可见的内容（Dialog对话框形式）
-        echo "端口 $target_port 已被占用，请改用其他端口" > "${TRIM_TEMP_LOGFILE}"
-        exit 1
+        alarm_and_exit "端口 $target_port 已被占用，请改用其他端口"
     fi
 
     # 2. 生成新文件
@@ -93,7 +99,114 @@ reset_admin_password() {
     return 0
 }
 
+str_trim() {
+    local str="$1"
+    str="${str#"${str%%[![:space:]]*}"}"   # 去除首空格
+    str="${str%"${str##*[![:space:]]}"}"  # 去除尾空格
+    echo "$str"
+}
+
+get_openlist_download_url(){
+    # 获取系统架构
+    local arch
+    local uname_out=$(uname -m)
+    case "$uname_out" in
+        x86_64) arch="linux-amd64" ;;
+        aarch64) arch="linux-arm64" ;;
+        loongarch64) arch="linux-loong64" ;;
+        riscv64) arch="linux-riscv64" ;;
+        *)
+            alarm_and_exit "不支持当前系统架构 $uname_out 下载安装OpenList"
+            ;;
+    esac
+    log_msg "系统架构: ${arch}"
+    # 构造下载链接并下载安装
+    local download_version="$1"
+    local download_url
+    if [[ "$download_version" == "beta" ]]; then
+        download_url="https://github.com/OpenListTeam/OpenList/releases/download/beta/openlist-${arch}.tar.gz"
+    else
+        download_url="https://github.com/OpenListTeam/OpenList/releases/download/v${download_version}/openlist-${arch}.tar.gz"
+    fi
+    local proxy_url=str_trim "$2"
+    if [[ -z "${proxy_url}" ]]; then
+        log_msg "使用代理下载 OpenList: ${proxy_url}"
+        download_url="${proxy_url}/${download_url}"
+    fi
+    echo $download_url
+}
+
+check_url_availability() {
+    local url="$1"
+    local status_code=$(curl -I -s -o /dev/null -w "%{http_code}" "$url")
+
+    if [ "$status_code" -ge 200 ] && [ "$status_code" -le 399 ]; then
+        return 0  # URL 可用
+    else
+        log_msg "下载链接不可用，HTTP 状态码: $status_code, URL: $url"
+        return 1  # URL 不可用
+    fi
+}
+
+get_last_openlist_version(){
+    # GitHub API URL
+    api_url="https://api.github.com/repos/OpenListTeam/OpenList/releases/latest"
+    # 使用 curl 获取 JSON 数据
+    json_data=$(curl -s "$api_url")
+    # 使用 grep 和 sed 提取版本号
+    latest_version=$(echo "$json_data" | grep -oP '"tag_name": "\Kv[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    # 去除版本号前的 'v'
+    latest_version=${latest_version#v}
+    # 输出最新版本号
+    echo "$latest_version"
+}
+
+install_version(){
+    openlist_version=$(str_trim "$openlist_version")
+    if [[ -z "${openlist_version}" ]]; then
+        log_msg "未指定OpenList版本号，跳过安装指定版本"
+        return 0
+    fi
+    log_msg "用户指定安装 OpenList 版本: ${openlist_version}"
+    local current_version=$(${TRIM_APPDEST}/bin/openlist version | awk '/^Version:/{print $2}' | sed 's/^v//')
+    if [[ "$current_version" == "refs/heads/main" ]]; then
+        # beta 固定版本号是 refs/heads/main
+        current_version="beta"
+    fi
+    log_msg "当前 OpenList 版本为 ${current_version}"
+    if [ "$current_version" == "$openlist_version" ]; then
+        log_msg "OpenList 当前已是 ${openlist_version} 版本，跳过安装指定版本"
+        return 0
+    fi
+
+    local download_url=$(get_openlist_download_url ${openlist_version} "${download_proxy_url}")
+    log_msg "检查下载链接: ${download_url}"
+    if !(check_url_availability "${download_url}") ; then
+        latest_version=$(get_last_openlist_version)
+        alarm_and_exit "OpenList最新版本号: $latest_version，请检测版本号或加速地址。下载链接不可用: ${download_url}"
+    fi
+    
+    log_msg "开始下载OpenList: ${download_url}"
+    save_file="${DOWNLOAD_DIR}/openlist_${openlist_version}.tar.gz"
+    rm -f $save_file
+    wget -O $save_file "${download_url}"
+    if [ ! -f $save_file ]; then
+        latest_version=$(get_last_openlist_version)
+        alarm_and_exit "下载失败，请稍后重试或换其他加速地址。OpenList最新版本号: $latest_version，当次下载地址：${download_url}"
+    fi
+
+    log_msg "下载完成：${save_file}, 开始解压openlist程序文件"
+    bash -c "tar -xzf $save_file -C ${DOWNLOAD_DIR}" >> ${LOG_FILE} 2>&1
+    log_msg "尝试停止OpenList服务"
+    bash -c "${TRIM_APPDEST}/bin/openlist stop" >> ${LOG_FILE} 2>&1
+    log_msg "替换openlist程序文件"
+    bash -c "mv ${DOWNLOAD_DIR}/openlist $TRIM_APPDEST/bin/openlist" >> ${LOG_FILE} 2>&1
+    log_msg "已安装OpenList版本: $($TRIM_APPDEST/bin/openlist version | awk '/^Version:/{print $2}' | sed 's/^v//') 完成"
+    rm -f $save_file
+}
+
 reset_admin_password
 make_sure_change_port
+install_version
 
 exit 0

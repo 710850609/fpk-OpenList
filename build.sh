@@ -1,4 +1,4 @@
-build_version=7
+build_version=8
 
 declare -A PARAMS
 

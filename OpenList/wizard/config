@@ -33,6 +33,36 @@
                         "message": "密码长度不能少于3位"
                     }
                 ]
+            },
+            {
+                "type": "tips",
+                "helpText": "如需要安装最新测试版本，请输入 beta "
+            },
+            {
+                "type": "text",
+                "field": "openlist_version",
+                "label": "OpenList版本",
+                "initValue": "4.1.9",
+                "rules": [
+                    {
+                        "required": true,
+                        "message": "请输入安装版本"
+                    },
+                    {
+                        "pattern": "^(?:[0-9]+\\.[0-9]+\\.[0-9]+|beta)$",
+                        "message": "版本号格式不正确，应为 1.0.0 或 beta"
+                    }
+                ]
+            },
+            {
+                "type": "tips",
+                "helpText": "如下载速度较慢，可尝试更换其他加速地址。如不需要，可留空使用默认地"
+            },
+            {
+                "type": "text",
+                "field": "download_proxy_url",
+                "label": "GitHub下载加速地址",
+                "initValue": "https://gh.llkk.cc"
             }
         ]
     }
