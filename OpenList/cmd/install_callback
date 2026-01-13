@@ -94,6 +94,6 @@ reset_admin_password() {
 }
 
 reset_admin_password
-make_sure_change_port
+# make_sure_change_port
 
 exit 0

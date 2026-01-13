@@ -6,7 +6,7 @@
                 "type": "text",
                 "field": "openlist_http_port",
                 "label": "服务端口",
-                "initValue": "",
+                "initValue": "5244",
                 "rules": [
                     {
                         "required": true,

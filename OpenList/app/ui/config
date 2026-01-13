@@ -5,7 +5,7 @@
             "icon": "images/icon_{0}.png",
             "type": "url",
             "protocol": "http",
-            "port": "${openlist_http_port}",
+            "port": "5244",
             "url": "/",
             "allUsers": false,            
             "control": {

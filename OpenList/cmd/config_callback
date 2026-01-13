@@ -45,6 +45,24 @@ check_port_in_use() {
     fi
 }
 
+update_fn_port() {
+    local service_port="$1"
+    sed -i "s|\"port\":.*,$|\"port\": \"${service_port}\",|g" ${TRIM_APPDEST}/ui/config
+    local sql_command="UPDATE app_service SET url='http://\${host}:${service_port}/', default_url='http://\${host}:${service_port}/' WHERE service_name LIKE '${TRIM_APPNAME}.%';"
+    # log_msg "执行SQL: $sql_command"
+    # 执行 SQL 命令并捕获输出
+    local psql_output
+    psql_output=$(psql -U postgres -d appcenter -c "$sql_command" 2>&1)
+    local psql_status=$?
+
+    if [ $psql_status -ne 0 ]; then
+        alarm_and_exit "更新数据库端口失败: $psql_output"
+    else
+        log_msg "更新数据库端口成功: $psql_output"
+    fi
+    log_msg "更新飞牛桌面图标端口【${service_port}】完成"
+} 
+
 make_sure_change_port() {
     make_sure_exist_cfg_file
 
@@ -84,6 +102,7 @@ make_sure_change_port() {
 
     rm -f "$tmp"
     log_msg "配置端口:【${target_port}】完成"
+    update_fn_port "$target_port"
 }
 
 reset_admin_password() {
