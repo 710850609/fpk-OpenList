@@ -30,7 +30,7 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
-            OpenListVersion=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' 2>/dev/null | grep . || echo "unknown")          
+            OpenListVersion=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//' 2>/dev/null | grep . || echo "unknown")
             TAG="release/${OpenListVersion}"
           else
             TAG="run-${GITHUB_RUN_NUMBER}"
