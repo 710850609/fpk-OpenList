@@ -137,7 +137,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: ${{ needs.build-multi-arch.outputs.release_version }}
-          tag: "release/${{ needs.setup.outputs.tag }}"
+          tag: "release/${{ needs.build-multi-arch.outputs.release_version }}"
           artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
@@ -147,7 +147,7 @@ jobs:
         if: always()
         run: |
           echo "=== 发布总结 ==="
-          echo "代码分支/标签: release/${{ needs.setup.outputs.tag }}"
+          echo "代码分支/标签: release/${{ needs.build-multi-arch.outputs.release_version }}"
           echo "版本:  ${{ needs.build-multi-arch.outputs.release_version }}"
           echo "预发布: ${{ needs.setup.outputs.prerelease }}"
           echo "包含的文件:"
