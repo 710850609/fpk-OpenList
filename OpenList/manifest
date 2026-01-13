@@ -5,7 +5,6 @@ desc         = <a href="https://doc.oplist.org/">OpenList</a> 是一个有韧性
 
 platform=x86
 source       = thirdparty
-os_min_version=1.1.8
 maintainer   = OpenListTeam
 maintainer_url = https://github.com/OpenListTeam/OpenList
 distributor  = BoB
