@@ -1,14 +1,13 @@
 #!/bin/bash
 
-LOG_DIR="${TRIM_PKGVAR}/logs"
-LOG_FILE="${LOG_DIR}/cmd.log"
+LOG_FILE="${TRIM_PKGVAR}/cmd.log"
 
 DATA_DIR="${TRIM_PKGVAR}/data"
 CFG_FILE="${DATA_DIR}/config.json"
 
 log_msg() {
-    if [ ! -d "${LOG_DIR}" ]; then
-        mkdir -p "${LOG_DIR}"
+    if [ ! -d "${TRIM_PKGVAR}" ]; then
+        mkdir -p "${TRIM_PKGVAR}"
     fi
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
 }
