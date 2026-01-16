@@ -34,6 +34,18 @@ echo "build_all: ${build_all}"
 echo "pre: ${build_pre}"
 echo "arch: ${arch}"
 
+get_last_openlist_version(){
+    # GitHub API URL
+    api_url="https://api.github.com/repos/OpenListTeam/OpenList/releases/latest"
+    # 使用 curl 获取 JSON 数据
+    json_data=$(curl -s "$api_url")
+    # 使用 grep 和 sed 提取版本号
+    latest_version=$(echo "$json_data" | grep -oP '"tag_name": "\Kv[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    # 去除版本号前的 'v'
+    latest_version=${latest_version#v}
+    # 输出最新版本号
+    echo "$latest_version"
+}
 
 if [ "${build_all}" == "true" ] || [ ! -f "${bin_file}" ]; then
     echo "openlist 预编译文件不存在: $bin_file, 开始下载预编译版本..."
@@ -50,11 +62,15 @@ if [ "${build_all}" == "true" ] || [ ! -f "${bin_file}" ]; then
     mv openlist "$bin_file"
     # echo "删除下载的压缩包"
     # rm -f openlist.tar.gz
+else
+    echo "使用已有的 openlist 预编译文件: $bin_file, 版本: ${openlist_version}"
 fi
 
 # echo "$(file ./OpenList/app/bin/openlist)"
 # echo "$(./OpenList/app/bin/openlist version)"
-openlist_version=$(./OpenList/app/bin/openlist version | awk '/^Version:/{print $2}' | sed 's/^v//')
+# 改用api获取最新版本号，支持多架构打包
+openlist_version=$(get_last_openlist_version)
+# openlist_version=$(./OpenList/app/bin/openlist version | awk '/^Version:/{print $2}' | sed 's/^v//')
 echo "当前openlist版本: ${openlist_version}"
 fpk_version="${openlist_version}-${build_version}"
 if [ "$build_pre" == 'true' ];then 
