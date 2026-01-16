@@ -1,50 +1,15 @@
 #!/bin/bash
 # https://developer.fnnas.com/docs/core-concepts/framework
 
-LOG_FILE="${TRIM_PKGVAR}/info.log"
-PID_FILE="${TRIM_PKGVAR}/app.pid"
+source "/var/apps/${TRIM_APPNAME}/cmd/common"
 
-DATA_DIR="${TRIM_PKGVAR}/data"
-CFG_FILE="${DATA_DIR}/config.json"
+PID_FILE="${TRIM_PKGVAR}/app.pid"
 
 # write the command to start your program here 
 
 # ./openlist  server http://0.0.0.0:5233 --data /vol1/@appdata/OpenList/data 
 # start 产生 dameon/pid 存储的pid可能不准确
 CMD="${TRIM_APPDEST}/bin/openlist server --data ${DATA_DIR} --config ${CFG_FILE}"
-
-log_msg() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
-}
-
-# 更新或追加 key=value
-# 用法: set_kv FILE KEY VALUE
-set_kv(){
-  local file=$1 key=$2 val=$3
-  # 1. 先转义 / 和 &，防止 sed 出错
-  val_esc=$(printf '%s\n' "$val" | sed 's/[\/&]/\\&/g')
-  # 2. 如果键已存在则替换，否则追加
-  if grep -q "^[[:space:]]*${key}[[:space:]]*=" "$file"; then
-    sed -i "s|^[[:space:]]*${key}[[:space:]]*=.*|${key}=${val_esc}|" "$file"
-    log_msg "更新 ${key}=${val} 到 ${file}"
-  else
-    echo "${key}=${val}" >> "$file"
-    log_msg "追加 ${key}=${val} 到 ${file}"
-  fi
-}
-
-check_port_in_use() {
-    local port=$1
-    # Linux 用 ss，没有 ss 再用 netstat
-    if command -v ss >/dev/null 2>&1; then
-        ss -tln | grep -q ":$port "
-    elif command -v netstat >/dev/null 2>&1; then
-        netstat -tln | grep -q ":$port "
-    else
-        # 都检测不到就保守一点：当“未占用”继续往下走
-        return 1
-    fi
-}
 
 start_process() {
     if status; then
@@ -53,15 +18,6 @@ start_process() {
 
     log_msg "Starting process ..."
     # run cmd to start process
-
-    local target_port="${openlist_http_port}"
-    if check_port_in_use "$target_port"; then
-        log_msg "目标端口 $target_port 已被占用，放弃启动"
-        # 在应用启动、安装、更新等过程中遇到错误时，可以向 TRIM_TEMP_LOGFILE 写入错误信息，然后退出脚本并返回错误码 1
-        # 系统会自动将错误日志在前端展示为用户可见的内容（Dialog对话框形式）
-        echo "端口 $target_port 已被占用。请停止 $target_port 的进程，或是修改服务为其他端口后再启动服务" > "${TRIM_TEMP_LOGFILE}"
-        exit 1
-    fi
 
     log_msg "CMD = ${CMD}"
     bash -c "${CMD}" >> ${LOG_FILE} 2>&1 &

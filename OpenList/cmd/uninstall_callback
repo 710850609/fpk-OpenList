@@ -2,17 +2,16 @@
 
 ### This script is called after the user uninstalls the application.
 
+source "/var/apps/${TRIM_APPNAME}/cmd/common"
+
 # 获取用户在向导中的选择
-WIZARD_DATA_ACTION="$wizard_data_action"
-
-echo "卸载时，用户选择数据保留选项: $WIZARD_DATA_ACTION"
-
+log_msg "卸载时，用户选择数据保留选项: $wizard_data_action"
 # 根据用户选择执行相应逻辑
-if [ "$WIZARD_DATA_ACTION" = "delete" ]; then
-    echo "开始删除数据目录：$TRIM_PKGVAR"
+if [ "$wizard_data_action" = "delete" ]; then
+    log_msg "开始删除数据目录：$TRIM_PKGVAR"
     rm -rf ${TRIM_PKGVAR}
 else
-    echo "保留数据不动"
+    log_msg "卸载时，选择保留数据"
 fi
 
 exit 0

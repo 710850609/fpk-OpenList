@@ -1,0 +1,117 @@
+#!/bin/bash
+
+LOG_DIR="${TRIM_PKGVAR}/logs"
+LOG_FILE="${LOG_DIR}/cmd.log"
+
+DATA_DIR="${TRIM_PKGVAR}/data"
+CFG_FILE="${DATA_DIR}/config.json"
+
+log_msg() {
+    if [ ! -d "${LOG_DIR}" ]; then
+        mkdir -p "${LOG_DIR}"
+    fi
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> ${LOG_FILE}
+}
+
+str_trim() {
+    local str="$1"
+    str="${str#"${str%%[![:space:]]*}"}"   # 去除首空格
+    str="${str%"${str##*[![:space:]]}"}"  # 去除尾空格
+    echo "$str"
+}
+
+alarm_and_exit() {
+    # 在应用启动、安装、更新等过程中遇到错误时，可以向 TRIM_TEMP_LOGFILE 写入错误信息，然后退出脚本并返回错误码 1
+    # 系统会自动将错误日志在前端展示为用户可见的内容（Dialog对话框形式）
+    log_msg "$1"
+    echo "$1" > "${TRIM_TEMP_LOGFILE}"
+    exit 1
+}
+
+check_port_in_use() {
+    local port=$1
+    # Linux 用 ss，没有 ss 再用 netstat
+    if command -v ss >/dev/null 2>&1; then
+        ss -tln | grep -q ":$port "
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tln | grep -q ":$port "
+    else
+        # 都检测不到就保守一点：当“未占用”继续往下走
+        return 1
+    fi
+}
+
+
+make_sure_exist_cfg_file() {
+    if [ ! -f "${CFG_FILE}" ]; then
+        log_msg "配置文件不存在，创建默认配置文件"
+        bash -c "${TRIM_APPDEST}/bin/openlist admin --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1
+    fi
+}
+
+
+# 更新超管密码
+update_admin_password() {
+    local new_password="$1"
+    if [ -n "$new_password" ]; then
+        make_sure_exist_cfg_file
+        log_msg "开始重置超管密码"
+        bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1
+        log_msg "设置超管账户密码: ${new_password}"
+    else {
+        log_msg "超管密码未设置，跳过更新"
+    fi
+}
+
+# 更新服务端口
+update_http_port() {
+    make_sure_exist_cfg_file
+    # 1. 读当前端口
+    local target_port="${1:-5244}"
+    local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
+    log_msg "当前端口=$curr_port, 目标端口=$target_port"
+    if [[ "$curr_port" == "$target_port" ]]; then
+        log_msg "端口相同，跳过"
+        return 0
+    fi
+    if check_port_in_use "$target_port"; then
+        alarm_and_exit "端口 $target_port 已被占用，请改用其他端口"
+    fi
+    jq ".scheme.http_port = \"$target_port\"" "$CFG_FILE" > temp.json && mv temp.json "$CFG_FILE"
+    log_msg "修改端口为: ${target_port}"
+}
+
+update_http_port2() {
+    make_sure_exist_cfg_file
+    # 1. 读当前端口
+    local target_port="${1:-5244}"
+    local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
+    log_msg "当前端口=$curr_port, 目标端口=$target_port"
+
+    if [[ "$curr_port" == "$target_port" ]]; then
+        log_msg "端口相同，跳过"
+        return 0
+    fi
+
+    if check_port_in_use "$target_port"; then
+        alarm_and_exit "端口 $target_port 已被占用，请改用其他端口"
+    fi
+
+    # 2. 生成新文件
+    local tmp="/tmp/config.json.$$.tmp"
+    log_msg "开始写入临时文件 $tmp"
+    if ! bash -c "jq --arg p '$target_port' '.scheme.http_port = (\$p | tonumber)' '$CFG_FILE' > '$tmp'" 2>>${LOG_FILE}; then
+        log_msg "jq 失败，退出码=$?"
+        alarm_and_exit "修改端口失败，请稍后重试"
+    fi
+
+    # 3. 原子替换
+    log_msg "mv $tmp -> $CFG_FILE"
+    if ! mv "$tmp" "$CFG_FILE" 2>>${LOG_FILE}; then
+        log_msg "mv 失败，退出码=$?"
+        alarm_and_exit "替换配置端口失败，请稍后重试"
+    fi
+
+    rm -f "$tmp"
+    log_msg "配置端口:【${target_port}】完成"
+}

@@ -1,7 +1,7 @@
 appname      = OpenList
-version=4.1.9-8-pre1
+version=4.1.9-9
 display_name = OpenList
-desc         = <a href="https://doc.oplist.org/">OpenList</a> 是一个有韧性、长期治理、社区驱动的 AList 分支，旨在防御基于信任的开源攻击。</br>一个支持多种存储的文件列表程序，使用 Gin 和 SolidJS</br> <hr><p><a href="https://github.com/710850609/fpk-OpenList" target="_blank">封装应用仓库</a></p></br>✅ 支持安装指定OpenList版本（应用设置中指定安装）<br>✅ 支持自定义/修改端口（安装、应用设置中设置）<br>✅ 支持自定义/修改admin密码（安装、应用设置中设置）
+desc         = <a href="https://doc.oplist.org/" target="_blank">OpenList</a> 是一个有韧性、长期治理、社区驱动的 AList 分支，旨在防御基于信任的开源攻击。</br>一个支持多种存储的文件列表程序，使用 Gin 和 SolidJS</br></br><a href="https://github.com/710850609/fpk-OpenList" target="_blank">封装应用源码</a></p></br>✅ 支持设置指定OpenList版本（应用设置中指定安装）<br>✅ 支持设置端口（安装、应用设置中设置）<br>✅ 支持设置admin密码（安装、应用设置中设置）</br>
 
 platform=x86
 source       = thirdparty

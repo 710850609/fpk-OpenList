@@ -1,4 +1,4 @@
-build_version=8
+build_version=9
 
 declare -A PARAMS
 
@@ -63,12 +63,14 @@ fi
 sed -i "s|^[[:space:]]*version[[:space:]]*=.*|version=${fpk_version}|" 'OpenList/manifest'
 echo "设置 FPK 版本号为: ${fpk_version}"
 
-# platform 取值 x86, arm, all
+# platform 取值 x86, arm, risc-v, all
 platform="all"
 if [ "${arch}" == "linux-amd64" ]; then
     platform="x86"
 elif [ "${arch}" == "linux-arm64" ]; then
     platform="arm"
+elif [ "${arch}" == "linux-riscv64" ]; then
+    platform="risc-v"
 else
     echo "未知的 arch 参数，使用默认值: ${arch}"
 fi
