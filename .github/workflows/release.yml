@@ -56,9 +56,9 @@ jobs:
           - arch: linux-amd64
             runner: ubuntu-latest
           - arch: linux-arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-latest
           - arch: linux-riscv64
-            runner: ubuntu-24.04-riscv64
+            runner: ubuntu-latest
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
@@ -66,10 +66,10 @@ jobs:
 
       - name: Run build
         run: |
-          echo "开始构建架构: ${{ matrix.arch }}, 系统架构： $(uname -m)"
+          echo "开始构建架构: ${{ matrix.arch }}"
           chmod +x ./fnpack.sh 2>/dev/null || true
           chmod +x ./build.sh 2>/dev/null || true
-          ./build.sh arch=${{ matrix.arch }} build_pre="${{ needs.setup.outputs.prerelease }}" 2>/dev/null || true
+          ./build.sh arch=${{ matrix.arch }} build_pre="${{ needs.setup.outputs.prerelease }}" build_all="true" 2>/dev/null || true
 
       - name: Prepare artifact
         run: |
