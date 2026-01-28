@@ -32,12 +32,12 @@ jobs:
           elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
             OpenListVersion=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//' 2>/dev/null | grep . || echo "unknown")
             echo "OpenList最新版本: $OpenListVersion"
-            TAG="release/${OpenListVersion}"
+            TAG="${OpenListVersion}"
           else
-            TAG="run-${GITHUB_RUN_NUMBER}"
+            TAG="build-${GITHUB_RUN_NUMBER}"
           fi
           
-          if [[ "$TAG" == run-* ]] || [[ "${TAG}" == *dev* ]] || [[ "${TAG}" == *pre* ]] || [[ "${TAG}" == *beta* ]]; then
+          if [[ "$TAG" == build-* ]] || [[ "${TAG}" == *dev* ]] || [[ "${TAG}" == *pre* ]] || [[ "${TAG}" == *beta* ]]; then
             PRE=true
           else
             PRE=false
@@ -53,11 +53,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: linux-amd64
+          - arch: x86
             runner: ubuntu-latest
-          - arch: linux-arm64
+          - arch: arm
             runner: ubuntu-latest
-          - arch: linux-riscv64
+          - arch: risc-v
             runner: ubuntu-latest
     runs-on: ${{ matrix.runner }}
     steps:
@@ -69,7 +69,7 @@ jobs:
           echo "开始构建架构: ${{ matrix.arch }}"
           chmod +x ./fnpack.sh 2>/dev/null || true
           chmod +x ./build.sh 2>/dev/null || true
-          ./build.sh arch=${{ matrix.arch }} build_pre="${{ needs.setup.outputs.prerelease }}" build_all="true" 2>/dev/null || true
+          ./build.sh arch=${{ matrix.arch }} build_pre="${{ needs.setup.outputs.prerelease }}" build_all="true" download_proxy_url="" 2>/dev/null || true
 
       - name: Prepare artifact
         run: |
@@ -81,15 +81,17 @@ jobs:
           fi
           
           mkdir -p release
-          if [ "${{ needs.setup.outputs.prerelease }}" == "true" ]; then
-            cp "$FPK_FILE" "release/$FPK_FILE"
-            echo "准备完成: $FPK_FILE"
-          else
-            # 正式版去除版本号
-            NEW_FPK_NAME="OpenList-${{ matrix.arch }}.fpk"
-            cp "$FPK_FILE" "release/$NEW_FPK_NAME"
-            echo "准备完成: $NEW_FPK_NAME"
-          fi
+          cp "$FPK_FILE" "release/$FPK_FILE"
+          echo "准备完成: $FPK_FILE"
+          # if [ "${{ needs.setup.outputs.prerelease }}" == "true" ]; then
+          #   cp "$FPK_FILE" "release/$FPK_FILE"
+          #   echo "准备完成: $FPK_FILE"
+          # else
+          #   # 正式版去除版本号
+          #   NEW_FPK_NAME="OpenList-${{ matrix.arch }}.fpk"
+          #   cp "$FPK_FILE" "release/$NEW_FPK_NAME"
+          #   echo "准备完成: $NEW_FPK_NAME"
+          # fi
 
       - name: Get release version
         id: release-version
@@ -126,19 +128,19 @@ jobs:
       - name: Download amd64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-linux-amd64
+          name: fpk-x86
           path: combined-release
 
       - name: Download arm64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-linux-arm64
+          name: fpk-arm
           path: combined-release
 
       - name: Download riscv64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-linux-riscv64
+          name: fpk-risc-v
           path: combined-release
 
       - name: Create GitHub Release
