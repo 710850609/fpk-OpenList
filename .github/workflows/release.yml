@@ -148,8 +148,7 @@ jobs:
         with:
           name: ${{ needs.build-multi-arch.outputs.release_version }}
           tag: "${{ needs.build-multi-arch.outputs.release_version }}"
-          # artifacts: "combined-release/*"
-          files: "combined-release/"
+          artifacts: "combined-release/*"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
           token: ${{ secrets.GITHUB_TOKEN }}
