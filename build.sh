@@ -1,11 +1,11 @@
-build_version=9
+build_version=10
 
 declare -A PARAMS
 
 # 默认值
 PARAMS[build_all]="false"
 PARAMS[build_pre]="false"
-PARAMS[arch]="x86"
+PARAMS[arch]="amd64"
 PARAMS[download_proxy_url]="https://gh.llkk.cc"
 
 # 解析 key=value 格式的参数
@@ -41,16 +41,16 @@ echo "pre: ${build_pre}"
 platform="unknown"
 openlist_arch="unknown"
 os_min_version="1.0.0"
-if [ "${arch}" == "x86" ]; then
+if [ "${arch}" == "amd64" ]; then
     platform="x86"
     os_min_version="1.1.8"
     openlist_arch="linux-amd64"
-elif [ "${arch}" == "arm" ]; then
+elif [ "${arch}" == "aarch64" ]; then
     platform="arm"
+    os_min_version="1.0.2"
     openlist_arch="linux-arm64"
 elif [ "${arch}" == "risc-v" ]; then
     platform="risc-v"
-    os_min_version="1.0.2"
     openlist_arch="linux-riscv64"
 else
     echo "未知的 arch 参数: ${arch}"
@@ -119,8 +119,15 @@ jq ".[0].items |= map(if .field == \"adg_version\" then .initValue = \"$openlist
 echo "更新配置向导中的OpenList版本号为: ${openlist_version}"
 
 echo "开始打包 OpenList.fpk"
-# fnpack build --directory OpenList/
-./fnpack.sh build --directory OpenList
+
+
+if command -v fnpack >/dev/null 2>&1; then
+    echo "使用系统已安装的 fnpack $(fnpack | grep Version) 进行打包"
+    fnpack build --directory OpenList/ || { echo "打包失败"; exit 1; }
+else
+    echo "使用本地 fnpack 脚本进行打包"
+    ./fnpack.sh build --directory OpenList || { echo "打包失败"; exit 1; }
+fi 
 
 fpk_name="OpenList-${fpk_version}-${arch}.fpk"
 mv OpenList.fpk "${fpk_name}"

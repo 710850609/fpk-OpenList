@@ -53,9 +53,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: x86
+          - arch: amd64
             runner: ubuntu-latest
-          - arch: arm
+          - arch: aarch64
             runner: ubuntu-latest
           - arch: risc-v
             runner: ubuntu-latest
@@ -128,13 +128,13 @@ jobs:
       - name: Download amd64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-x86
+          name: fpk-amd64
           path: combined-release
 
-      - name: Download arm64 artifact
+      - name: Download aarch64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: fpk-arm
+          name: fpk-aarch64
           path: combined-release
 
       - name: Download riscv64 artifact
@@ -148,7 +148,8 @@ jobs:
         with:
           name: ${{ needs.build-multi-arch.outputs.release_version }}
           tag: "${{ needs.build-multi-arch.outputs.release_version }}"
-          artifacts: "combined-release/*"
+          # artifacts: "combined-release/*"
+          files: "combined-release/"
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
           token: ${{ secrets.GITHUB_TOKEN }}

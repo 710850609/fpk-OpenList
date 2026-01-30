@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 LOG_FILE="${TRIM_PKGVAR}/cmd.log"
 
@@ -57,7 +58,7 @@ update_admin_password() {
         log_msg "开始重置超管密码"
         bash -c "${TRIM_APPDEST}/bin/openlist admin set ${new_password} --data ${DATA_DIR} --config ${CFG_FILE}" >> ${LOG_FILE} 2>&1
         log_msg "设置超管账户密码: ${new_password}"
-    else {
+    else 
         log_msg "超管密码未设置，跳过更新"
     fi
 }
@@ -65,24 +66,6 @@ update_admin_password() {
 # 更新服务端口
 update_http_port() {
     make_sure_exist_cfg_file
-    # 1. 读当前端口
-    local target_port="${1:-5244}"
-    local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
-    log_msg "当前端口=$curr_port, 目标端口=$target_port"
-    if [[ "$curr_port" == "$target_port" ]]; then
-        log_msg "端口相同，跳过"
-        return 0
-    fi
-    if check_port_in_use "$target_port"; then
-        alarm_and_exit "端口 $target_port 已被占用，请改用其他端口"
-    fi
-    jq ".scheme.http_port = \"$target_port\"" "$CFG_FILE" > temp.json && mv temp.json "$CFG_FILE"
-    log_msg "修改端口为: ${target_port}"
-}
-
-update_http_port2() {
-    make_sure_exist_cfg_file
-    # 1. 读当前端口
     local target_port="${1:-5244}"
     local curr_port=$(jq -r '.scheme.http_port ' "$CFG_FILE" 2>&1 | tee -a ${LOG_FILE})
     log_msg "当前端口=$curr_port, 目标端口=$target_port"
@@ -90,27 +73,21 @@ update_http_port2() {
     if [[ "$curr_port" == "$target_port" ]]; then
         log_msg "端口相同，跳过"
         return 0
-    fi
-
-    if check_port_in_use "$target_port"; then
-        alarm_and_exit "端口 $target_port 已被占用，请改用其他端口"
     fi
 
     # 2. 生成新文件
     local tmp="/tmp/config.json.$$.tmp"
     log_msg "开始写入临时文件 $tmp"
     if ! bash -c "jq --arg p '$target_port' '.scheme.http_port = (\$p | tonumber)' '$CFG_FILE' > '$tmp'" 2>>${LOG_FILE}; then
-        log_msg "jq 失败，退出码=$?"
-        alarm_and_exit "修改端口失败，请稍后重试"
+        alarm_and_exit "修改端口失败"
     fi
 
     # 3. 原子替换
     log_msg "mv $tmp -> $CFG_FILE"
     if ! mv "$tmp" "$CFG_FILE" 2>>${LOG_FILE}; then
-        log_msg "mv 失败，退出码=$?"
-        alarm_and_exit "替换配置端口失败，请稍后重试"
+        alarm_and_exit "替换配置端口失败"
     fi
 
     rm -f "$tmp"
-    log_msg "配置端口:【${target_port}】完成"
+    log_msg "修改端口:【${target_port}】完成"
 }
