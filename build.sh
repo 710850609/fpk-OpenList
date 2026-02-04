@@ -114,7 +114,7 @@ echo "设置 manifest 的 platform 为: ${platform}"
 sed -i "s|^[[:space:]]*os_min_version[[:space:]]*=.*|os_min_version=${os_min_version}|" 'OpenList/manifest'
 echo "设置 manifest 的 os_min_version 为: ${os_min_version}"
 
-jq ".[0].items |= map(if .field == \"adg_version\" then .initValue = \"$openlist_version\" else . end)" OpenList/wizard/config > temp.json \
+jq ".[0].items |= map(if .field == \"openlist_version\" then .initValue = \"$openlist_version\" else . end)" OpenList/wizard/config > temp.json \
   && mv temp.json OpenList/wizard/config
 echo "更新配置向导中的OpenList版本号为: ${openlist_version}"
 
