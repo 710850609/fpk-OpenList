@@ -18,7 +18,6 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      # tag: ${{ steps.set-tag.outputs.tag }}
       prerelease: ${{ steps.set-tag.outputs.prerelease }}
     steps:
       - name: Checkout repository
@@ -30,9 +29,7 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF##*/}"
           elif [[ "${GITHUB_REF}" == refs/heads/main ]]; then
-            OpenListVersion=$(curl -s "https://api.github.com/repos/OpenListTeam/OpenList/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed 's/^v//' 2>/dev/null | grep . || echo "unknown")
-            echo "OpenList最新版本: $OpenListVersion"
-            TAG="${OpenListVersion}"
+            TAG="main"
           else
             TAG="build-${GITHUB_RUN_NUMBER}"
           fi
@@ -43,13 +40,14 @@ jobs:
             PRE=false
           fi
           
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "prerelease=$PRE" >> $GITHUB_OUTPUT
+          echo "prerelease: $PRE"
 
   build-multi-arch:
     needs: setup
     outputs:
-      release_version: ${{ steps.release-version.outputs.version }}
+      release_version: ${{ steps.release-info.outputs.version }}
+      release_notes: ${{ steps.release-info.outputs.release_notes }}
     strategy:
       matrix:
         include:
@@ -83,18 +81,9 @@ jobs:
           mkdir -p release
           cp "$FPK_FILE" "release/$FPK_FILE"
           echo "准备完成: $FPK_FILE"
-          # if [ "${{ needs.setup.outputs.prerelease }}" == "true" ]; then
-          #   cp "$FPK_FILE" "release/$FPK_FILE"
-          #   echo "准备完成: $FPK_FILE"
-          # else
-          #   # 正式版去除版本号
-          #   NEW_FPK_NAME="OpenList-${{ matrix.arch }}.fpk"
-          #   cp "$FPK_FILE" "release/$NEW_FPK_NAME"
-          #   echo "准备完成: $NEW_FPK_NAME"
-          # fi
 
       - name: Get release version
-        id: release-version
+        id: release-info
         run: |
           FPK_FILE=$(ls *.fpk 2>/dev/null | head -1)
           if [ -z "$FPK_FILE" ]; then
@@ -104,9 +93,34 @@ jobs:
             exit 1
           fi
           # 读取版本号
-          version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' ./OpenList/manifest | sed 's/^"\|"$//g')
-          echo "构建FPK版本: $version"
-          echo "version=$version" >> $GITHUB_OUTPUT
+          release_version=$(sed -n 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*//p' ./OpenList/manifest | sed 's/^"\|"$//g')
+          echo "从manifest中获取release_version: $release_version"
+          echo "version=$release_version" >> $GITHUB_OUTPUT
+
+          if [[ "${{ needs.setup.outputs.prerelease }}" == "true" ]]; then
+            echo "release_notes=''" >> $GITHUB_OUTPUT
+          else
+            awk -v ver="$release_version" '
+                $0 ~ "^## " ver { found=1; next }
+                found && $0 ~ "^## " { exit }
+                found { print }
+              ' "${{ github.workspace }}/CHANGELOG.md" > release_notes.txt
+            # 检查是否提取到内容
+            if [ ! -s release_notes.txt ]; then
+              echo "- 更新OpenList版本" > release_notes.txt
+              sed -i "1i\\
+              ## ${release_version}\\
+              - 更新OpenList版本\\
+              " CHANGELOG.md
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add CHANGELOG.md
+              git commit -m "add release notes"
+              git push origin HEAD:main
+            fi
+            echo "更新日志: $(cat release_notes.txt)"
+            echo "release_notes=$(cat release_notes.txt)" >> $GITHUB_OUTPUT
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -152,6 +166,7 @@ jobs:
           prerelease: ${{ needs.setup.outputs.prerelease }}
           skipIfReleaseExists: true
           token: ${{ secrets.GITHUB_TOKEN }}
+          body: ${{ needs.build-multi-arch.outputs.release_notes }}
 
       - name: Upload release summary
         if: always()
@@ -163,3 +178,19 @@ jobs:
           echo "包含的文件:"
           ls -la combined-release/
           echo "================"
+
+      - name: Push FnDepot
+        if: ${{ needs.setup.outputs.prerelease == 'false' }}
+        run: |
+          new_version="${{ needs.build-multi-arch.outputs.release_version }}"
+          changelog="${{ needs.build-multi-arch.outputs.release_notes }}"
+          
+          gh workflow run update-version.yml \
+            --repo "710850609/FnDepot" \
+            -f app_name="OpenList" \
+            -f new_version="$new_version" \
+            -f download_url_amd64="https://github.com/710850609/fpk-OpenList/releases/download/$new_version/OpenList-$new_version-amd64.fpk" \
+            -f download_url_aarch64="https://github.com/710850609/fpk-OpenList/releases/download/$new_version/OpenList-$new_version-aarch64.fpk" \
+            -f changelog="$changelog"
+        env:
+          GH_TOKEN: ${{ secrets.FNDEPOT_TOKEN }}
