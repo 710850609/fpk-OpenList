@@ -108,15 +108,6 @@ jobs:
             # 检查是否提取到内容
             if [ ! -s release_notes.txt ]; then
               echo "- 更新OpenList版本" > release_notes.txt
-              sed -i "1i\\
-              ## ${release_version}\\
-              - 更新OpenList版本\\
-              " CHANGELOG.md
-              git config user.name "github-actions[bot]"
-              git config user.email "github-actions[bot]@users.noreply.github.com"
-              git add CHANGELOG.md
-              git commit -m "add release notes"
-              git push origin HEAD:main
             fi
             echo "更新日志: $(cat release_notes.txt)"
             echo "release_notes=$(cat release_notes.txt)" >> $GITHUB_OUTPUT
